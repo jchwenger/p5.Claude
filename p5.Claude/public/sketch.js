@@ -21,7 +21,7 @@ function setup() {
   // console.log(response);
   createUI();
 
-  bgColor = color(247, 192, 13)
+  bgColor = color(51, 255, 51)
   background(bgColor);
 
 }
@@ -39,7 +39,7 @@ function keyPressed() {
 // --------------------------------------------------------------------------------
 // display functions
 
-function displayResponse(message, completion=false) {
+function displayResponse(message) {
 
   background(bgColor);
 
@@ -48,44 +48,18 @@ function displayResponse(message, completion=false) {
   textAlign(LEFT);
   textFont('Georgia');
 
-  // fill both sketch and input with prompt + answer
-  const promptTextarea = document.getElementsByName('prompt')[0];
-  const prompt = promptTextarea.value;
-  // in completion mode, both input & message are displayed
-  if (completion) {
-    text(`${prompt}${message}`, margin, margin, width - 2 * margin);
-  // in chat mode, display the response only
-  } else {
-    text(message, margin, margin, width - 2 * margin);
-  }
-  promptTextarea.value = `${prompt}${message}`;
-}
+  // display the response only
+  text(message, margin, margin, width - 2 * margin);
 
-function displayImage(message) {
+  // // to fill the input text with prompt + answer
+  // const promptTextarea = document.getElementsByName('prompt')[0];
+  // const prompt = promptTextarea.value;
+  // promptTextarea.value = `${prompt}`;
 
-  background(bgColor);
-
-  // console.log(`inside displayImage, message:`);
-  // console.log(message);
-  const img = createImg(message.url, img => {
-    image(img, margin, margin, img.width, img.height);
-  }); // using the callback & an anonymous function: https://p5js.org/reference/#/p5/loadImage
-  img.hide(); // weirdly, having this inside the callback results in a glitch
 }
 
 // --------------------------------------------------------------------------------
 // request functions
-
-function requestCompletion() {
-  const form = document.getElementById('request-form');
-  const data = new FormData(form);
-  console.log('requesting completion');
-  socket.emit('completion request', {
-      'prompt': data.get('prompt'),
-      'max_tokens': data.get('max-tokens'),
-      'temperature': data.get('temperature'),
-    }, (response) => console.log(response));
-}
 
 function requestChat() {
   const form = document.getElementById('request-form');
@@ -105,7 +79,13 @@ function requestImage() {
   const data = new FormData(form);
   console.log('requesting image');
   console.log(form);
+  // Get the canvas and convert it to a base64-encoded PNG image
+  const canvas = document.querySelector('canvas'); // assuming p5.js created one canvas
+  const imageData = canvas.toDataURL('image/png'); // you could also use 'image/jpeg'
+  // Strip the prefix to get raw base64 content
+  const base64Image = imageData.replace(/^data:image\/\w+;base64,/, '');
     socket.emit('image request', {
+      'image': base64Image,
       'prompt': data.get('prompt'),
     }, (response) => console.log(response));
 }
@@ -116,7 +96,7 @@ function requestImage() {
 socket.on('completion response', (message) => {
   console.log('completion response:');
   console.log(message);
-  displayResponse(message, true);
+  displayResponse(message);
 });
 
 socket.on('chat response', (message) => {
@@ -128,7 +108,7 @@ socket.on('chat response', (message) => {
 socket.on('image response', (message) => {
   console.log('image response:');
   console.log(message);
-  displayImage(message);
+  displayResponse(message);
 });
 
 // --------------------------------------------------------------------------------
@@ -217,19 +197,11 @@ function createUI() {
   const buttonsDiv = document.createElement('div');
   buttonsDiv.setAttribute('id', 'buttons');
 
-  // completion button
-  const completionButton = document.createElement('button');
-  completionButton.setAttribute('type', 'button');
-  completionButton.setAttribute('content', 'completion');
-  completionButton.setAttribute('id', 'completion-button');
-  completionButton.textContent = 'completion';
-  completionButton.addEventListener('click', () => requestCompletion());
-
   // chat button
   const chatButton = document.createElement('button');
   chatButton.setAttribute('type', 'button');
   chatButton.setAttribute('content', 'chat');
-  completionButton.setAttribute('id', 'chat-button');
+  chatButton.setAttribute('id', 'chat-button');
   chatButton.textContent = 'chat';
   chatButton.addEventListener('click', () => requestChat());
 
@@ -237,7 +209,7 @@ function createUI() {
   const imgButton = document.createElement('button');
   imgButton.setAttribute('type', 'button');
   imgButton.setAttribute('content', 'image');
-  completionButton.setAttribute('id', 'img-button');
+  imgButton.setAttribute('id', 'img-button');
   imgButton.textContent = 'image';
   imgButton.addEventListener('click', () => requestImage());
 
@@ -248,7 +220,6 @@ function createUI() {
   resetButton.textContent = 'reset';
   resetButton.addEventListener('click', () => background(bgColor));
 
-  buttonsDiv.appendChild(completionButton);
   buttonsDiv.appendChild(chatButton);
   buttonsDiv.appendChild(imgButton);
   buttonsDiv.appendChild(resetButton);

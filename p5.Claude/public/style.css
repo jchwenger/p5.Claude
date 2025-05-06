@@ -53,11 +53,12 @@ input[type=number] {
 }
 
 button {
-  width: 80px;
+  flex: 1;
   height: 40px;
 }
 
 #buttons {
   display: flex;
   justify-content: space-between;
+  gap: 10px;
 }

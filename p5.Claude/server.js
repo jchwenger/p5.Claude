@@ -1,15 +1,15 @@
 // --------------------------------------------------------------------------------
-// P5js + Node server with websockets and the OpenAI API
+// P5js + Node server with websockets and the Claude API
 //
-// Jérémie Wenger, 2023
-// With Iris Colomb, in the context of *Machines poétiques*: exploring textual
-// systems through experimental French poetry, Goldsmiths College
+// Jérémie Wenger, 2025
+// With Robin Leverton and Nathan Bayliss, in the context of *Tech, Tea + Exchange*:
+// A residency in partnership with Tate, Anthropic, Goldsmiths and UAL
 // --------------------------------------------------------------------------------
 
 import fs from 'fs';
-import OpenAI from 'openai';
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
+import Anthropic from '@anthropic-ai/sdk';
 
 // Authentication, two ways: environment or a file
 // -----------------------------------------------
@@ -17,27 +17,27 @@ import { fileURLToPath } from 'url';
 // https://nodejs.dev/en/learn/reading-files-with-nodejs/ (and GPT :>) let
 // secretOpenAIKey;
 
-let secretOpenAIKey;
+let secretAnthropicKey;
 
 try {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
   const data = fs.readFileSync(__dirname + '/secret.txt');
-  secretOpenAIKey =  data.toString().trim();
+  secretAnthropicKey = data.toString().trim();
 } catch (err) {
   console.error(err);
 }
 
 // 2) local environment
 //    for this, you need to define the variable in your terminal before launching node:
-//    export OPENAI_API_KEY=...
-if (!secretOpenAIKey) {
+//    export ANTHROPIC_API_KEY=...
+if (!secretAnthropicKey) {
 
   console.log('configuration through the `secret.txt` file, trying the environment variable');
 
-  secretOpenAIKey = process.env.OPENAI_API_KEY;
+  secretAnthropicKey = process.env.ANTHROPIC_API_KEY;
 
-  if (!secretOpenAIKey) {
+  if (!secretAnthropicKey) {
     console.log('---------------------------------------------------------------------------------');
     console.log('could not access the secret API key, please read `readme.md` on how to configure!');
     console.log('---------------------------------------------------------------------------------');
@@ -50,14 +50,14 @@ if (!secretOpenAIKey) {
   console.log('configuration through the secret text file successful!');
 }
 
-const openai = new OpenAI({
-  apiKey: secretOpenAIKey,
+const anthropic = new Anthropic({
+  apiKey: secretAnthropicKey,
 });
 
 // // to see all available models in the terminal
-// // (the official list can be found here: https://platform.openai.com/docs/models/overview)
+// // (the official list can be found here: https://platform.anthropic.com/docs/models/overview)
 // async function listEngines() {
-//   return await openai.models.list();
+//   return await anthropic.models.list();
 // }
 // console.log('requesting engines');
 // const response = listEngines().then(r => {
@@ -92,26 +92,6 @@ io.on('connection', (socket) => {
   io.emit('message', 'hello');
   // console.log('sent message');
 
-  // ! See requestCompletion for notes on available models
-  socket.on('completion request', (message, sock) => {
-    console.log(`completion requested by user:`);
-    console.log(message);
-    sock('the server received your completion request');
-    console.log('making request to the model...');
-    requestCompletion(...Object.values(message))
-      .then((response) => {
-        // console.log(response); // see the full horror of the response object
-        console.log(response.choices);
-        const t = response.choices[0].text // TODO: OpenAI gives the option to get multiple responses for one request, to be explored!
-        console.log('it answered!');
-        io.emit('completion response', t);
-      })
-      .catch((e) => {
-        io.emit('completion response', "");
-        console.error(e);
-      });
-  });
-
   socket.on('chat request', (message, sock) => {
     console.log(`chat requested by user:`);
     console.log(message);
@@ -120,9 +100,9 @@ io.on('connection', (socket) => {
     requestMessage(...Object.values(message))
       .then((response) => {
         // console.log(response); // see the full horror of the response object
-        const t = response.choices[0].message.content;  // TODO: OpenAI gives the option to get multiple responses for one request, to be explored!
+        const t = response.content[0].text;
         console.log('it answered!');
-        console.log(response.choices);
+        console.log(response.content);
         io.emit('chat response', t);
       })
       .catch((e) => {
@@ -132,16 +112,16 @@ io.on('connection', (socket) => {
   });
 
   socket.on('image request', (message, sock) => {
-    console.log(`image requested by user:`);
-    console.log(message);
+    console.log(`image analysis requested by user, with the prompt:`);
+    console.log(message.prompt);
     sock('the server received your image request');
     console.log('making request to the model...');
-    requestImage(...Object.values(message))
+    requestImageAnalysis(...Object.values(message))
       .then((response) => {
         // console.log(response); // see the full horror of the response object
-        const t = response.data[0];  // TODO: OpenAI gives the option to get multiple images for one request, to be explored!
+        const t = response.content[0].text;
         console.log('it answered!');
-        console.log(response.data);
+        console.log(response);
         io.emit('image response', t);
       })
       .catch((e) => {
@@ -155,20 +135,6 @@ io.on('connection', (socket) => {
 // separate async function (required if we want to use the await keyword)
 // this allows us to make a call to the API, and wait for it to respond
 // without breaking our code
-async function requestCompletion(
-  prompt = 'Say this is a test',
-  max_tokens = 7,
-  temperature = 0.7,
-) {
-  // console.log('inside requestCompletion', prompt, max_tokens, temperature);
-  return await openai.completions.create({
-    model: 'gpt-3.5-turbo-instruct', // TODO: search the documentation for various models, possibly allow the user to change this from the UI.
-    prompt: prompt,                  //       For available models, see here: https://stackoverflow.com/a/75777838
-    temperature: parseFloat(temperature),  // security checks
-    max_tokens: parseInt(max_tokens),      // for the variable type
-    n: 1, // TODO: the parameter for requesting more than one answer
-  });
-}
 
 async function requestMessage(
   prompt = 'Say this is a test',
@@ -177,24 +143,40 @@ async function requestMessage(
   temperature = 0.7,
 ) {
   // console.log('inside requestChat', prompt, system_prompt, max_tokens, temperature);
-  return await openai.chat.completions.create({
-    model: "gpt-3.5-turbo",
+  return await anthropic.messages.create({
+    model: 'claude-3-haiku-20240307', // Replace with your preferred model
+    max_tokens: parseInt(max_tokens),
+    temperature: parseFloat(temperature),
+    system: system_prompt,
     messages: [
-      {role: "system", content: system_prompt},
-      {role: "user", content: prompt}
+      { role: 'user', content: prompt }
     ],
-    max_tokens: parseInt(max_tokens),     // security checks
-    temperature: parseFloat(temperature), // for the variable type
-    n: 1, // TODO: the parameter for requesting more than one answer
   });
 }
 
-async function requestImage(
-  prompt = "The rainbow cyborg armageddon, Dutch oil painting, 1723, British Museum"
-) {
-  return await openai.images.generate({
-    prompt: prompt,
-    n: 1,              // TODO: the number of images should be betwen 1 & 10 → add the appropriate field to the UI
-    size: "256x256",  // TODO: add a way for users to change image sizes, possible choices: 256x256, 512x512, or 1024x1024
+async function requestImageAnalysis(base64Image, prompt = 'Describe this image.') {
+
+  return await anthropic.messages.create({
+    model: 'claude-3-haiku-20240307', // Replace with your preferred model
+    max_tokens: 1000,
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: 'image/png', // Adjust if your image is a different format
+              data: base64Image,
+            },
+          },
+          {
+            type: 'text',
+            text: prompt,
+          },
+        ],
+      },
+    ],
   });
 }
