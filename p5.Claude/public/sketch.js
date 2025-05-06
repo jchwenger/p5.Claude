@@ -86,6 +86,7 @@ function requestImage() {
   const base64Image = imageData.replace(/^data:image\/\w+;base64,/, '');
     socket.emit('image request', {
       'image': base64Image,
+      'system_prompt': data.get('system'),
       'prompt': data.get('prompt'),
     }, (response) => console.log(response));
 }
