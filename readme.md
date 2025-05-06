@@ -1,29 +1,21 @@
-# p5.GPT
+# p5.Claude
 
-## [p5.js](https://p5js.org/) & [ChatGPT](https://chat.openai.com/chat)
+## [p5.js](https://p5js.org/) & [Claude](https://claude.ai/)
 
-Originally presented during a Computational Arts MA/MFA Workshop at Goldsmiths College, London, June 2023, by Iris Colomb & Jérémie Wenger. More info in the repo [Machines Poétiques 2023](https://github.com/jchwenger/machines.poetiques.goldsmiths.2023).
+Originally presented during a the [Tech, Tea + Exchange Residency](https://www.tate.org.uk/whats-on/tate-modern/electric-dreams/tech-tea--exchange), London, June 2025, in a workshop with Nathan Bayliss, Robin Leverton and Jérémie Wenger. More in [this repo](https://github.com/jchwenger/TECH-TEA-EXCHANGE).
 
 ## Starter code
 
-## Openai: ChatGPT & Dall-e
+## Anthropic: Claude
 
-A websocket app with with NodeJS, Express, SocketIO and P5js using the [API from OpenAI](https://platform.openai.com/docs/api-reference) through [the `openai` NPM module](https://www.npmjs.com/package/openai).
+A websocket app with with NodeJS, Express, SocketIO and P5js using the [API from Anthropic](https://docs.anthropic.com/en/api/getting-started) through [the `anthropic` NPM module](https://www.npmjs.com/package/@anthropic-ai/sdk).
 
 Press `¬` to toggle the UI.
 
-Click on `completion` to get ChatGPT to continue the text in the **prompt** `textarea` (**system** is ignored, both the prompt `textarea` and the sketch are filled with the **prompt** and the completion). In the picture below, the original prompt is highlighted.
+Click on `chat` to get Claude to continue the text in the **prompt** `textarea`, while also following instructions in the **system** `textarea`. Giving **examples** of what you want usually helps a lot.
 
-![openai, chatgpt completion](pics/openai.chatgpt-completion.png)
+![anthropic, chat wordmaking](pics/claude-text.png)
 
-Click on `chat` to get ChatGPT to continue the text in the **prompt** `textarea`, while following instructions in the **system** `textarea`.
+Click on `image` to send the canvas to Claude (instructions in the **prompt** and **system** `textarea`s are still followed).
 
-![openai, chatgpt chat style](pics/openai.chatgpt-chat.1.png)
-
-Note: giving **examples** of what you want usually helps a lot (especially for models prior to GPT-4).
-
-![openai, chatgpt chat wordmaking](pics/openai.chatgpt-chat.2.png)
-
-Click on `image` to request an image from Dall-e following the text in the **prompt** `textarea` (**system** is ignored).
-
-![openai, dall-e](pics/openai.dall-e.png)
+![anthropic, ](pics/claude-image.png)
