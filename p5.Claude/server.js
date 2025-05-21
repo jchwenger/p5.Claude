@@ -156,6 +156,9 @@ async function requestMessage(
 
 async function requestImageAnalysis(base64Image, prompt, system_prompt) {
 
+  // console.log('inside requestImageAnalysis:');
+  // console.log(prompt, system_prompt);
+
   return await anthropic.messages.create({
     model: 'claude-3-haiku-20240307', // Replace with your preferred model
     system: system_prompt,
